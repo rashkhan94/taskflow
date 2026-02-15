@@ -1,0 +1,127 @@
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar.jsx';
+import { getAvatarColor, getInitials } from '../components/Navbar.jsx';
+import api from '../services/api.js';
+import { useToast } from '../hooks/useToast.jsx';
+
+export default function BoardsPage() {
+    const [boards, setBoards] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [showCreate, setShowCreate] = useState(false);
+    const [title, setTitle] = useState('');
+    const [description, setDescription] = useState('');
+    const { showToast, ToastComponent } = useToast();
+
+    useEffect(() => {
+        fetchBoards();
+    }, []);
+
+    const fetchBoards = async () => {
+        try {
+            const res = await api.get('/boards');
+            setBoards(res.data.boards);
+        } catch {
+            showToast('Failed to load boards', 'error');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCreate = async (e) => {
+        e.preventDefault();
+        if (!title.trim()) return;
+        try {
+            const res = await api.post('/boards', { title, description });
+            setBoards((prev) => [res.data.board, ...prev]);
+            setTitle('');
+            setDescription('');
+            setShowCreate(false);
+            showToast('Board created!', 'success');
+        } catch {
+            showToast('Failed to create board', 'error');
+        }
+    };
+
+    return (
+        <div className="app-layout">
+            <Navbar />
+            <div className="app-content">
+                <div className="boards-page">
+                    <div className="boards-header">
+                        <h2>Your Boards</h2>
+                    </div>
+
+                    {loading ? (
+                        <div className="loading-spinner"><div className="spinner" /></div>
+                    ) : (
+                        <div className="boards-grid">
+                            <div className="board-card board-card-new" onClick={() => setShowCreate(true)}>
+                                <div className="board-card-new-icon">+</div>
+                                <span>Create New Board</span>
+                            </div>
+
+                            {boards.map((board) => (
+                                <Link to={`/boards/${board._id}`} className="board-card" key={board._id}
+                                    style={{ '--card-accent': board.background || '#6366f1' }}>
+                                    <div className="board-card-title">{board.title}</div>
+                                    <div className="board-card-desc">{board.description || 'No description'}</div>
+                                    <div className="board-card-meta">
+                                        <div className="board-card-members">
+                                            {board.members?.slice(0, 4).map((m) => (
+                                                <div key={m._id} className="avatar"
+                                                    style={{ background: getAvatarColor(m.name) }}
+                                                    title={m.name}>
+                                                    {getInitials(m.name)}
+                                                </div>
+                                            ))}
+                                            {board.members?.length > 4 && (
+                                                <div className="avatar" style={{ background: '#64748b' }}>
+                                                    +{board.members.length - 4}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span className="board-card-date">
+                                            {new Date(board.updatedAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {showCreate && (
+                <div className="modal-overlay" onClick={() => setShowCreate(false)}>
+                    <div className="modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="modal-header">
+                            <h3>Create New Board</h3>
+                            <button className="btn btn-ghost btn-icon" onClick={() => setShowCreate(false)}>✕</button>
+                        </div>
+                        <form onSubmit={handleCreate}>
+                            <div className="modal-body">
+                                <div className="input-group">
+                                    <label>Board Title</label>
+                                    <input className="input" placeholder="Enter board title" value={title}
+                                        onChange={(e) => setTitle(e.target.value)} required autoFocus />
+                                </div>
+                                <div className="input-group">
+                                    <label>Description (optional)</label>
+                                    <textarea className="input" placeholder="Describe your board"
+                                        value={description} onChange={(e) => setDescription(e.target.value)} />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button type="button" className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary">Create Board</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {ToastComponent}
+        </div>
+    );
+}
