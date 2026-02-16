@@ -63,6 +63,25 @@ export default function LoginPage() {
                     <button type="submit" className="btn btn-primary" disabled={loading}>
                         {loading ? 'Signing in...' : 'Sign In'}
                     </button>
+                    <button
+                        type="button"
+                        className="btn btn-secondary"
+                        onClick={async () => {
+                            setError('');
+                            setLoading(true);
+                            try {
+                                await login('alice@demo.com', 'password123');
+                                navigate('/boards');
+                            } catch (err) {
+                                setError(err.response?.data?.message || 'Demo login failed. Please run seed script.');
+                            } finally {
+                                setLoading(false);
+                            }
+                        }}
+                        disabled={loading}
+                    >
+                        Login as Demo User
+                    </button>
                 </form>
 
                 <div className="auth-footer">
