@@ -61,6 +61,8 @@ app.use(errorHandler);
 setupSocket(io);
 
 import { seed } from './seed.js';
+import mongoose from 'mongoose';
+import User from './models/User.js';
 
 app.get('/api/seed', async (req, res) => {
     try {
@@ -68,6 +70,20 @@ app.get('/api/seed', async (req, res) => {
         res.json({ message: 'Database seeded successfully!' });
     } catch (error) {
         res.status(500).json({ message: 'Seeding failed', error: error.message });
+    }
+});
+
+app.get('/api/status', async (req, res) => {
+    try {
+        const status = {
+            state: mongoose.connection.readyState, // 0=disconnected, 1=connected, 2=connecting, 3=disconnecting
+            host: mongoose.connection.host,
+            userCount: await User.countDocuments(),
+            demoUser: await User.findOne({ email: 'alice@demo.com' }).select('email'),
+        };
+        res.json(status);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
     }
 });
 
