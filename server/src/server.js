@@ -60,6 +60,17 @@ app.use(errorHandler);
 // Socket.io
 setupSocket(io);
 
+import { seed } from './seed.js';
+
+app.get('/api/seed', async (req, res) => {
+    try {
+        await seed(false); // false = don't close connection
+        res.json({ message: 'Database seeded successfully!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Seeding failed', error: error.message });
+    }
+});
+
 // Start server
 const PORT = process.env.PORT || 5000;
 
